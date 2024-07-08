@@ -36,3 +36,45 @@ curl http://127.0.0.1:8080
 ## Adding Capabilities
 
 To learn how to extend this example with additional capabilities, see the [Adding Capabilities](https://wasmcloud.com/docs/tour/adding-capabilities?lang=rust) section of the wasmCloud documentation.
+
+
+## Post request template 
+
+```json
+{
+  "name": "Poc",
+  "nodes": [
+    {
+  "id": "1",
+  "name" : "trigger",
+  "node_type": "start",
+  "parameters":{},
+  "next_node": "2"
+    },
+     {
+  "id": "2",
+  "name" : "add",
+  "node_type": "processing",
+  "parameters":{
+    "operation":  "add random value"
+  },
+  "next_node": "3"
+    },
+     {
+  "id": "3",
+  "name" : "print",
+  "node_type": "end",
+  "parameters":{
+   "operation":  "print value"
+  }
+    }
+    ],
+    "connections": {
+      "1": ["2"],
+      "2": ["3"]
+    },
+    "metadata": {
+      "description": "A poc workflow"
+    }
+}
+```
