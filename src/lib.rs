@@ -1,18 +1,22 @@
 mod models;
+mod nodes;
 mod utils;
 mod workflow_runner;
 mod workflow_service;
 
 wit_bindgen::generate!();
 
-use std::{fmt::Debug, io::Error};
+use std::{any::Any, fmt::Debug};
 
 use crate::wasi::io::streams::StreamError;
 use anyhow::{anyhow, bail, Result};
 use exports::wasi::http::incoming_handler::Guest;
 use models::WorkflowData;
+use nodes::{AddNode, Node, PrintNode};
 use utils::parse_workflow_data;
 use wasi::http::types::*;
+use workflow_service::WorkflowService;
+use std::collections::HashMap;
 
 const MAX_READ_BYTES: u32 = 2048;
 
@@ -20,6 +24,11 @@ struct WorkflowController;
 
 impl Guest for WorkflowController {
     fn handle(request: IncomingRequest, response_out: ResponseOutparam) {
+        // Créer la structure a similaire à { "add": AddNode, "print": PrintNode }
+        let mut all_nodes: HashMap<&str, Box<dyn Node>> = HashMap::new();
+        all_nodes.insert("add", Box::new(AddNode));
+        all_nodes.insert("print", Box::new(PrintNode));
+
         let path = request.path_with_query().unwrap();
         let splited_path: Vec<&str> = path.split("/").collect();
 
@@ -31,11 +40,11 @@ impl Guest for WorkflowController {
 
                 let workflow_data: Result<WorkflowData, _> = parse_workflow_data(&result);
                 if workflow_data.is_ok() {
-                    // Call workflowService
+                    WorkflowService::execute_manually(workflow_data.unwrap(), all_nodes);
 
-                    // send_response (response_out, 200, "Is OK");
+                    send_response(response_out, 200, "Is OK");
                 } else {
-                    send_response (response_out, 400, "Workflow not found");
+                    send_response(response_out, 400, "Workflow not found");
                 }
             }
             _ => (),
