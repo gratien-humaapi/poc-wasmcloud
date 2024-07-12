@@ -11,10 +11,6 @@ pub struct Connection {
     pub to: String,    
 }
 
-pub enum NodeResult {
-    Success(Value),
-    Failure(Value),
-}
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct NodeData {

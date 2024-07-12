@@ -6,13 +6,13 @@ mod workflow_service;
 
 wit_bindgen::generate!();
 
-use std::{any::Any, fmt::Debug};
+use std::fmt::Debug;
 
 use crate::wasi::io::streams::StreamError;
 use anyhow::{anyhow, bail, Result};
 use exports::wasi::http::incoming_handler::Guest;
 use models::WorkflowData;
-use nodes::{AddNode, Node, PrintNode};
+use nodes::{AddNode, Node, PrintNode, TriggerNode};
 use utils::parse_workflow_data;
 use wasi::http::types::*;
 use workflow_service::WorkflowService;
@@ -28,6 +28,7 @@ impl Guest for WorkflowController {
         let mut all_nodes: HashMap<&str, Box<dyn Node>> = HashMap::new();
         all_nodes.insert("add", Box::new(AddNode));
         all_nodes.insert("print", Box::new(PrintNode));
+        all_nodes.insert("trigger", Box::new(TriggerNode));
 
         let path = request.path_with_query().unwrap();
         let splited_path: Vec<&str> = path.split("/").collect();

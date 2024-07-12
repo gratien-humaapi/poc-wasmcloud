@@ -1,13 +1,11 @@
 use std::{collections::HashMap, fmt::Debug};
 
-use serde_json::Value;
-
 use crate::wasi;
 
 // Trait Node générique
 pub trait Node {
     // Méthode execute qui prend un HashMap de paramètres
-    fn execute(&self, params: Option<HashMap<String, Value>>,input_data: Option<&Value>) -> Box<dyn std::fmt::Debug>;
+    fn execute(&self, params: HashMap<String, String>) -> Box<dyn std::fmt::Debug>;
 }
 
 impl Debug for dyn Node {
@@ -17,34 +15,35 @@ impl Debug for dyn Node {
 }
 
 // Struct AddNode qui implémente le trait Node pour T = Vec<i32>
-pub struct AddNode;
+pub struct TriggerNode;
+
+impl Node for TriggerNode {
+    fn execute(&self, _params: HashMap<String, String>) -> Box<dyn std::fmt::Debug> {
+       Box::new(())
+    }
+}
+
+pub struct  AddNode;
 
 impl Node for AddNode {
-    fn execute(&self, params: Option<HashMap<String, Value>>, input_data: Option<&Value>) -> Box<dyn std::fmt::Debug> {
+    fn execute(&self, params: HashMap<String, String>) -> Box<dyn std::fmt::Debug> {
         let mut sum = 0;
 
-        if let Some(x) = params {
-            // Récupérer le vecteur d'entiers à partir des paramètres
-            if let Some(numbers) = x.get("value") {
-                if let Ok(numbers) = serde_json::from_value::<Vec<i32>>(numbers.clone()) {
-                    // Calculer la somme des nombres dans le vecteur
-                    sum = numbers.iter().sum();
-                } else {
-                    wasi::logging::logging::log(
-                        wasi::logging::logging::Level::Info,
-                        "",
-                        &format!("Error while converting value in AddNode"),
-                    );
-                }
-            }
+        let value_str = params
+            .get("value")
+            .map_or_else(|| String::new(), |v| v.clone());
 
+        // Récupérer le vecteur d'entiers à partir des paramètres
+        if let Ok(value) = serde_json::from_str::<Vec<i32>>(value_str.as_str()) {
+            // Calculer la somme des nombres dans le vecteur
+            sum = value.iter().sum();
+            Box::new(sum)
+        } else {
             wasi::logging::logging::log(
                 wasi::logging::logging::Level::Info,
                 "",
-                &format!("res = {}", sum),
+                &format!("Error while converting value in AddNode"),
             );
-            Box::new(sum)
-        } else {
             // Retourner une erreur ou une valeur par défaut si le paramètre n'est pas trouvé
             Box::new("Numbers to add not found")
         }
@@ -55,28 +54,28 @@ impl Node for AddNode {
 pub struct PrintNode;
 
 impl Node for PrintNode {
-    fn execute(&self, params: Option<HashMap<String, Value>>, input_data: Option<&Value>) -> Box<dyn std::fmt::Debug> {
+    fn execute(&self, params: HashMap<String, String>) -> Box<dyn std::fmt::Debug> {
         // Récupérer la chaîne à afficher à partir des paramètres
-        if let Some(x) = params {
+        let value_str = params
+            .get("value")
+            .map_or_else(|| String::new(), |v| v.clone());
+
+        if let Ok(value) = serde_json::from_str::<String>(value_str.as_str()) {
             // Récupérer le vecteur d'entiers à partir des paramètres
-            if let Some(value) = x.get("value") {
-                if let Ok(res) = serde_json::from_value::<String>(value.clone()) {
-                    // Retourner le résultat sous forme de boîte de Debug pour l'affichage
-                    wasi::logging::logging::log(
-                        wasi::logging::logging::Level::Info,
-                        "",
-                        &format!("Output : {res:?}"),
-                    );
-                } else {
-                    wasi::logging::logging::log(
-                        wasi::logging::logging::Level::Info,
-                        "",
-                        &format!("Error while converting value in PrintNode"),
-                    );
-                }
-            }
+            // Retourner le résultat sous forme de boîte de Debug pour l'affichage
+            wasi::logging::logging::log(
+                wasi::logging::logging::Level::Info,
+                "",
+                &format!("Output : {value:?}"),
+            );
+
             Box::new(())
         } else {
+            wasi::logging::logging::log(
+                wasi::logging::logging::Level::Info,
+                "",
+                &format!("Error while converting value in PrintNode"),
+            );
             // Retourner une erreur ou une valeur par défaut si le paramètre n'est pas trouvé
             Box::new("Data not found")
         }
